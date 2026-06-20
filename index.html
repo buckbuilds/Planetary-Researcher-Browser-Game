@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planetary Expedition</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0a1a;--card:#111128;--card-border:#1a1a3a;--text:#e0e0f0;--text-dim:#8888aa;
+--accent1:#6366f1;--accent2:#a855f7;--accent3:#ec4899;--green:#22c55e;--orange:#f59e0b;
+--font:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+button{font-family:var(--font);cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text);padding:4px 10px;font-size:12px;border-radius:3px;transition:background .15s}
+button:hover{background:var(--accent1);border-color:var(--accent1)}
+button.active{background:var(--accent1);border-color:var(--accent2)}
+select{font-family:var(--font);background:var(--card);color:var(--text);border:1px solid var(--card-border);padding:4px 8px;font-size:12px;border-radius:3px}
+input,textarea{font-family:var(--font);background:var(--bg);color:var(--text);border:1px solid var(--card-border);padding:4px 8px;font-size:12px;border-radius:3px}
+textarea{resize:vertical}
+
+#screen-container{display:none;flex:1;flex-direction:column;background:var(--bg);align-items:center;justify-content:center;padding:20px;overflow:auto;position:relative}
+#screen-container pre{margin:0 auto;width:fit-content}
+#screen-container .nav-bar{flex-shrink:0;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:8px 0}
+#screen-container .nav-bar button.btn-active{background:var(--accent1);border-color:var(--accent2)}
+#screen-container .seed-bar{flex-shrink:0;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--card-border);background:var(--card);border-radius:4px;margin-top:10px}
+#screen-container .seed-bar .seed-label{color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+#screen-container .seed-bar input{min-width:210px;background:var(--bg)}
+#screen-container .popup-panel{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--accent1);padding:10px 14px;font-size:12px;white-space:pre-wrap;max-width:420px;z-index:10;border-radius:4px}
+#screen-container .reading{color:var(--green)}
+
+#top-bar{display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--card);border-bottom:1px solid var(--card-border);flex-shrink:0;flex-wrap:wrap}
+#top-bar .label{color:var(--text-dim);font-size:11px}
+#top-bar .value{color:var(--green);font-size:12px}
+#top-bar .sep{color:var(--card-border)}
+.top-group{display:flex;align-items:center;gap:6px}
+
+#main{display:flex;flex:1;overflow:hidden}
+#left-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--card-border)}
+#right-panel{width:340px;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+
+#output{flex:1;overflow-y:auto;padding:12px;white-space:pre-wrap;font-size:13px;line-height:1.6}
+#output .location-name{color:var(--accent2);font-weight:700;font-size:15px}
+#output .reading{color:var(--green)}
+#output .dim{color:var(--text-dim)}
+#output .warn{color:var(--orange)}
+#output .accent{color:var(--accent1)}
+#output .bio{color:var(--accent3)}
+#output .separator{color:var(--card-border);display:block;margin:6px 0}
+
+#map-container{border-top:1px solid var(--card-border);padding:8px 12px;flex-shrink:0}
+#map-display{font-size:12px;line-height:1.3;color:var(--text-dim);letter-spacing:2px}
+#map-display .you{color:var(--accent3);font-weight:700}
+#map-display .explored{color:var(--text)}
+
+#right-panel .section{padding:8px 12px;border-bottom:1px solid var(--card-border)}
+#right-panel .section-title{color:var(--accent1);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+
+#action-bar{display:flex;flex-wrap:wrap;gap:4px}
+#action-bar button{min-width:40px}
+#instrument-bar{display:flex;flex-wrap:wrap;gap:4px}
+#instrument-bar button{font-size:11px;padding:3px 7px}
+
+#catalog-list{overflow-y:auto;flex:1;padding:8px 12px;font-size:11px}
+#catalog-list .entry{margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--card-border)}
+#catalog-list .entry-name{color:var(--accent3)}
+#catalog-list .entry-type{color:var(--text-dim);font-size:10px}
+#catalog-list .scan-layers{margin-top:4px;font-size:10px}
+#catalog-list .scan-tag{display:inline-block;padding:1px 5px;border-radius:2px;margin-right:3px;font-size:9px;border:1px solid var(--card-border)}
+#catalog-list .scan-tag.done{border-color:var(--green);color:var(--green)}
+#catalog-list .scan-tag.missing{color:var(--text-dim);opacity:0.4}
+
+#anomaly-list{overflow-y:auto;flex:1;padding:8px 12px;font-size:11px}
+#anomaly-list .a-entry{margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--card-border)}
+#anomaly-list .a-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+#anomaly-list .a-name{color:var(--accent2);font-weight:700;overflow-wrap:anywhere}
+#anomaly-list .a-meta{color:var(--text-dim);font-size:10px;margin-top:2px}
+#anomaly-list .a-desc{color:var(--text);font-size:10px;line-height:1.5;margin-top:5px}
+#anomaly-list .a-evidence{margin-top:5px;font-size:10px;display:flex;flex-wrap:wrap;gap:3px}
+#anomaly-list .a-tag{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;border:1px solid var(--card-border)}
+#anomaly-list .a-tag.done{border-color:var(--green);color:var(--green)}
+#anomaly-list .a-tag.missing{color:var(--text-dim);opacity:0.45}
+#anomaly-list .a-status{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;border:1px solid var(--card-border);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+#anomaly-list .a-status.suspected{color:var(--orange);border-color:var(--orange)}
+#anomaly-list .a-status.confirmed{color:var(--green);border-color:var(--green)}
+#anomaly-list .a-status.reported{color:var(--accent1);border-color:var(--accent1)}
+#anomaly-list .a-actions{margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+#anomaly-list .a-actions button{font-size:10px;padding:3px 7px;border-color:var(--accent2)}
+
+.tab-bar{display:flex;gap:2px;padding:4px 12px;background:var(--bg);border-bottom:1px solid var(--card-border)}
+.tab-bar button{border:none;background:transparent;color:var(--text-dim);padding:4px 8px;font-size:11px;border-bottom:2px solid transparent}
+.tab-bar button.active{color:var(--accent1);border-bottom-color:var(--accent1);background:transparent}
+.tab-bar button:hover{color:var(--text);background:transparent}
+.tab-bar button.attention{color:var(--orange);animation:tabPulse 1.8s ease-in-out infinite}
+@keyframes tabPulse{
+  0%,100%{text-shadow:none;border-bottom-color:transparent}
+  50%{text-shadow:0 0 8px var(--orange);border-bottom-color:var(--orange)}
+}
+
+#right-content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.right-view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.right-view.active{display:flex}
+
+#journal-entries{overflow-y:auto;flex:1;padding:8px 12px;font-size:11px}
+#journal-entries .j-entry{margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--card-border)}
+#journal-entries .j-meta{color:var(--text-dim);font-size:10px;display:flex;gap:8px;align-items:center}
+#journal-entries .j-cat{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+#journal-entries .j-text{margin-top:3px;line-height:1.5}
+#journal-entries .j-note{border-left:2px solid var(--accent1);padding-left:8px;color:var(--text)}
+
+#journal-stats{padding:8px 12px;border-bottom:1px solid var(--card-border);font-size:10px;display:flex;flex-wrap:wrap;gap:6px 14px}
+#journal-stats .stat{display:flex;align-items:center;gap:4px}
+#journal-stats .stat-val{color:var(--green);font-weight:700}
+#journal-stats .stat-label{color:var(--text-dim)}
+
+#journal-area{padding:8px 12px;flex-shrink:0;border-top:1px solid var(--card-border)}
+#journal-input{width:100%;height:50px;margin-top:4px}
+#journal-cat-select{margin-top:4px}
+
+#planet-info{padding:12px;font-size:11px;overflow-y:auto;flex:1}
+#planet-info .prop{margin-bottom:4px}
+#planet-info .prop-label{color:var(--text-dim)}
+#planet-info .prop-value{color:var(--green)}
+
+#glossary-list{overflow-y:auto;flex:1;padding:10px 12px;font-size:11px}
+#glossary-list .g-section{margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--card-border)}
+#glossary-list .g-title{color:var(--accent1);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+#glossary-list .g-row{display:grid;grid-template-columns:minmax(44px,72px) 1fr;gap:8px;margin-bottom:4px;align-items:start}
+#glossary-list .g-key{color:var(--green);font-weight:700;overflow-wrap:anywhere}
+#glossary-list .g-def{color:var(--text-dim);line-height:1.45}
+
+#radio-tuner{display:none;padding:6px 12px;border-top:1px solid var(--card-border);background:var(--card)}
+#radio-tuner .section-title{color:var(--accent1);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+
+/* MOBILE */
+@media(max-width:700px){
+  body{font-size:14px}
+  #main{flex-direction:column;overflow-y:auto}
+  #left-panel{border-right:none;flex:none}
+  #right-panel{width:100%;flex:none;border-top:1px solid var(--card-border)}
+  #output{min-height:200px;max-height:40vh;font-size:14px}
+  #top-bar{font-size:11px;gap:6px;padding:6px 8px;overflow-x:auto;flex-wrap:nowrap}
+  #top-bar .sep{display:none}
+  #top-bar .top-group{flex-shrink:0}
+  #map-container{max-height:120px;overflow:auto}
+  #action-bar{gap:6px}
+  #action-bar button{min-width:48px;padding:8px 12px;font-size:14px}
+  #instrument-bar{gap:6px}
+  #instrument-bar button{padding:8px 10px;font-size:13px}
+  .section{padding:10px 12px!important}
+  button{padding:6px 12px;font-size:13px}
+  #screen-container .seed-bar{width:100%}
+  #screen-container .seed-bar input{min-width:0;flex:1}
+  .tab-bar button{font-size:13px;padding:6px 10px}
+  #journal-input{height:60px;font-size:14px}
+  #catalog-list{font-size:13px}
+  #anomaly-list{font-size:13px}
+  #anomaly-list .a-meta,#anomaly-list .a-desc,#anomaly-list .a-evidence{font-size:11px}
+  #anomaly-list .a-tag,#anomaly-list .a-status{font-size:10px}
+  #anomaly-list .a-actions button{font-size:12px;padding:6px 10px;min-height:34px}
+  #journal-entries{font-size:13px}
+  #planet-info{font-size:13px}
+  #glossary-list{font-size:13px}
+  #glossary-list .g-title{font-size:11px}
+  #glossary-list .g-row{grid-template-columns:minmax(52px,78px) 1fr}
+  #instrument-readout{font-size:14px!important;max-height:50vh!important}
+}
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+  <div class="top-group"><span class="label">PLANET:</span><span class="value" id="hud-planet">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">POS:</span><span class="value" id="hud-pos">0,0</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">BIOME:</span><span class="value" id="hud-biome">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">TIME:</span><span class="value" id="hud-time">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">RAD:</span><span class="value" id="hud-rad">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">GRAV:</span><span class="value" id="hud-grav">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">SKY:</span><span class="value" id="hud-phase">—</span></div>
+</div>
+
+<div id="main">
+  <!-- SCREEN CONTAINER: System map, travel, landing (replaces left-panel) -->
+  <div id="screen-container"></div>
+  <div id="left-panel">
+    <div id="output"></div>
+    <div id="map-container">
+      <div id="map-display"></div>
+    </div>
+    <div class="section" style="border-top:1px solid var(--card-border);padding:8px 12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="color:var(--text-dim);font-size:11px">MOVE:</span>
+        <div id="action-bar">
+          <button onclick="Game.move(0,-1)" title="North">N &uarr;</button>
+          <button onclick="Game.move(0,1)" title="South">S &darr;</button>
+          <button onclick="Game.move(-1,0)" title="West">W &larr;</button>
+          <button onclick="Game.move(1,0)" title="East">E &rarr;</button>
+        </div>
+        <span style="color:var(--card-border)">|</span>
+        <button onclick="Game.deployDrone()">&#x1f6f8; Drone Survey</button>
+        <button onclick="Game.wait()" id="btn-wait">&#x23f3; Wait 1hr</button>
+        <button onclick="Game.returnToShip()" id="btn-return-ship" style="display:none;border-color:var(--accent2)">&#x1f680; Return to Ship</button>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <span style="color:var(--text-dim);font-size:11px">INSTRUMENTS:</span>
+        <div id="instrument-bar">
+          <button onclick="Game.scan('atmo')">&#x1f321;&#xfe0f; Atmo</button>
+          <button onclick="Game.scan('rad')">&#x2622;&#xfe0f; Rad</button>
+          <button onclick="Game.scan('star')">&#x1f52d; Stars</button>
+          <button onclick="Game.scan('solar')">&#x2600;&#xfe0f; Solar</button>
+          <button onclick="Game.scan('mag')">&#x1f9f2; Mag</button>
+          <button onclick="Game.scan('lidar')">&#x1f4e1; LIDAR</button>
+          <button onclick="Game.scan('radar')">&#x1f4fb; Radar</button>
+          <button onclick="Game.scan('ir')">&#x1f534; IR</button>
+          <button onclick="Game.scan('spec')">&#x1f52c; Spec</button>
+          <button onclick="Game.scan('seismo')">&#x1f30b; Seismo</button>
+          <button onclick="Game.scan('radio')">&#x1f4e1; Radio</button>
+          <button onclick="Game.catalog()" style="border-color:var(--accent3)">&#x1f4cb; Catalog</button>
+          <button onclick="Game.observe()" id="btn-observe" style="border-color:var(--orange);display:none">&#x1f50d; Observe</button>
+        </div>
+      </div>
+      <!-- Radio tuner -->
+      <div id="radio-tuner">
+        <div class="section-title">RADIO TUNER</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button onclick="Game.tuneRadio(-10)">-10</button>
+          <button onclick="Game.tuneRadio(-1)">-1</button>
+          <button onclick="Game.tuneRadio(-0.1)">-0.1</button>
+          <span id="radio-freq-display" style="color:var(--green);min-width:80px;text-align:center">145.0 MHz</span>
+          <button onclick="Game.tuneRadio(0.1)">+0.1</button>
+          <button onclick="Game.tuneRadio(1)">+1</button>
+          <button onclick="Game.tuneRadio(10)">+10</button>
+          <span style="color:var(--card-border)">|</span>
+          <button onclick="Game.sendFleetReport()" style="border-color:var(--accent2)">&#x1f4e1; Send Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div class="tab-bar">
+      <button class="active" onclick="UI.showTab('journal', this)">Journal</button>
+      <button onclick="UI.showTab('catalog', this)">Catalog</button>
+      <button id="tab-anomalies" onclick="UI.showTab('anomalies', this)">Anomalies</button>
+      <button onclick="UI.showTab('planet', this)">Planet</button>
+      <button onclick="UI.showTab('glossary', this)">Glossary</button>
+    </div>
+    <div id="right-content">
+      <div id="view-journal" class="right-view active">
+        <div style="padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--card-border)"><input id="journal-search" type="text" placeholder="Search journals..." oninput="Journal.search(this.value)" style="width:100%;font-size:12px;padding:6px 8px;background:var(--card);border:1px solid var(--accent1)44"></div>
+        <div id="journal-stats"></div>
+        <div id="journal-entries"><span class="dim">No entries yet.</span></div>
+        <div id="journal-area">
+          <div class="section-title">FIELD NOTE</div>
+          <div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+            <select id="journal-cat-select">
+              <option value="note">&#x1f4dd; Personal Note</option>
+              <option value="hypothesis">&#x1f4a1; Hypothesis</option>
+              <option value="observation">&#x1f441; Observation</option>
+              <option value="analysis">&#x1f9ea; Analysis</option>
+              <option value="terrain">&#x1f5fa;&#xfe0f; Terrain</option>
+              <option value="geology">&#x26f0;&#xfe0f; Geology</option>
+              <option value="stellar">&#x2b50; Stellar</option>
+              <option value="fauna">&#x1f43e; Fauna</option>
+              <option value="flora">&#x1f33f; Flora</option>
+            </select>
+          </div>
+          <textarea id="journal-input" placeholder="Record your observations, theories, analyses..."></textarea>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <button onclick="Journal.writeNote()" style="flex:1">Save Entry</button>
+            <button onclick="Journal.saveLastReading()" title="Save last instrument reading to journal">&#x1f4be; Save Reading</button>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px;border-top:1px solid var(--card-border);padding-top:6px">
+            <button onclick="Journal.archiveJournal()" style="flex:1;border-color:var(--orange)">&#x1f4be; Save &amp; New Journal</button>
+            <button onclick="Journal.toggleSavedList()" style="border-color:var(--accent2)">&#x1f4da; Saved</button>
+          </div>
+          <div id="saved-journals" style="display:none;margin-top:6px;max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div id="view-catalog" class="right-view">
+        <div id="catalog-list"><span class="dim">No discoveries yet.</span></div>
+      </div>
+      <div id="view-anomalies" class="right-view">
+        <div id="anomaly-list"><span class="dim">No anomalous signatures logged.</span></div>
+      </div>
+      <div id="view-planet" class="right-view">
+        <div id="planet-info"></div>
+      </div>
+      <div id="view-glossary" class="right-view">
+        <div id="glossary-list">
+          <div class="g-section">
+            <div class="g-title">Anomaly IDs</div>
+            <div class="g-row"><span class="g-key">THM</span><span class="g-def">Thermal Bloom. Persistent heat pattern without a normal terrain source.</span></div>
+            <div class="g-row"><span class="g-key">MAG</span><span class="g-def">Magnetic Shear. Local field drift that does not match the planet model.</span></div>
+            <div class="g-row"><span class="g-key">RAD</span><span class="g-def">Narrowband Echo. Repeating radio structure above background static.</span></div>
+            <div class="g-row"><span class="g-key">SUB</span><span class="g-def">Subsurface Void. Coherent reflector or density gap below the surface.</span></div>
+            <div class="g-row"><span class="g-key">BIO</span><span class="g-def">Biogenic Trace. Organic-like modulation without a catalogued organism profile.</span></div>
+            <div class="g-row"><span class="g-key">WX</span><span class="g-def">Stationary Weather Cell. Atmospheric disturbance fixed against local flow.</span></div>
+            <div class="g-row"><span class="g-key">SEI</span><span class="g-def">Seismic Resonance. Repeating microtremor pattern below local noise.</span></div>
+          </div>
+          <div class="g-section">
+            <div class="g-title">Instruments</div>
+            <div class="g-row"><span class="g-key">Atmo</span><span class="g-def">Atmospheric pressure, composition, wind, visibility, and weather.</span></div>
+            <div class="g-row"><span class="g-key">Rad</span><span class="g-def">Radiation dose rate and local radiation sources.</span></div>
+            <div class="g-row"><span class="g-key">Stars</span><span class="g-def">Star tracker and sextant. Works best at night with clear sky.</span></div>
+            <div class="g-row"><span class="g-key">Solar</span><span class="g-def">Local star data, sun altitude, sunrise, sunset, and day length.</span></div>
+            <div class="g-row"><span class="g-key">Mag</span><span class="g-def">Magnetic field strength and local vector behavior.</span></div>
+            <div class="g-row"><span class="g-key">LIDAR</span><span class="g-def">Terrain shape, elevation, slope, and surface mapping.</span></div>
+            <div class="g-row"><span class="g-key">Radar</span><span class="g-def">Subsurface structure, buried reflectors, and density changes.</span></div>
+            <div class="g-row"><span class="g-key">IR</span><span class="g-def">Infrared heat signatures and thermal contrast.</span></div>
+            <div class="g-row"><span class="g-key">Spec</span><span class="g-def">Spectroscopy for minerals, organics, surface materials, and chemistry.</span></div>
+            <div class="g-row"><span class="g-key">Seismo</span><span class="g-def">Ground vibration, tremors, and repeating seismic patterns.</span></div>
+            <div class="g-row"><span class="g-key">Radio</span><span class="g-def">Radio spectrum scan and manual frequency tuning.</span></div>
+          </div>
+          <div class="g-section">
+            <div class="g-title">HUD</div>
+            <div class="g-row"><span class="g-key">PLANET</span><span class="g-def">Current planet surface.</span></div>
+            <div class="g-row"><span class="g-key">POS</span><span class="g-def">Current surface coordinates.</span></div>
+            <div class="g-row"><span class="g-key">BIOME</span><span class="g-def">Known terrain type at your current position.</span></div>
+            <div class="g-row"><span class="g-key">TIME</span><span class="g-def">Local mission day and hour on this planet.</span></div>
+            <div class="g-row"><span class="g-key">RAD</span><span class="g-def">Radiation dose rate after using the radiation instrument.</span></div>
+            <div class="g-row"><span class="g-key">GRAV</span><span class="g-def">Surface gravity after enough physical survey data.</span></div>
+            <div class="g-row"><span class="g-key">SKY</span><span class="g-def">Current light phase: Dawn, Daylight, Dusk, or Night.</span></div>
+          </div>
+          <div class="g-section">
+            <div class="g-title">Map Symbols</div>
+            <div class="g-row"><span class="g-key">@</span><span class="g-def">Your current location.</span></div>
+            <div class="g-row"><span class="g-key">!</span><span class="g-def">Confirmed anomaly location.</span></div>
+            <div class="g-row"><span class="g-key">?</span><span class="g-def">Explored terrain that has not been classified yet.</span></div>
+            <div class="g-row"><span class="g-key">.</span><span class="g-def">Plains.</span></div>
+            <div class="g-row"><span class="g-key">^</span><span class="g-def">Mountain.</span></div>
+            <div class="g-row"><span class="g-key">~</span><span class="g-def">Ocean.</span></div>
+            <div class="g-row"><span class="g-key">▲</span><span class="g-def">Volcanic terrain.</span></div>
+            <div class="g-row"><span class="g-key">❄</span><span class="g-def">Ice.</span></div>
+            <div class="g-row"><span class="g-key">♣</span><span class="g-def">Forest.</span></div>
+            <div class="g-row"><span class="g-key">○</span><span class="g-def">Cave.</span></div>
+            <div class="g-row"><span class="g-key">░</span><span class="g-def">Desert.</span></div>
+            <div class="g-row"><span class="g-key">≈</span><span class="g-def">Marsh.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/state.js"></script>
+<script src="js/anomalies.js"></script>
+<script src="js/world.js"></script>
+<script src="js/time.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/instruments.js"></script>
+<script src="js/journal.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
