@@ -254,6 +254,7 @@ const Screens = {
     container.appendChild(nav);
     container.appendChild(seedBar);
     UI.updateHUD();
+    UI.renderEquipment();
   },
 
   scanOrToggle() {
