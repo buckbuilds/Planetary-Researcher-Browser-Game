@@ -80,6 +80,7 @@ const Screens = {
           <div>
             <h1>Expedition Log</h1>
             <div class="log-subtitle">Choose a saved expedition or start a fresh one.</div>
+            <div class="log-subtitle" style="opacity:.6">${GAME_BUILD}</div>
           </div>
           <div class="log-actions">
             <button onclick="Game.newExpedition()" style="border-color:var(--green)">New Expedition</button>

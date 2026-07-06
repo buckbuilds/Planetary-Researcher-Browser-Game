@@ -54,6 +54,10 @@ const Events = {
   }
 };
 
+// Build stamp — shown on the Expedition Log screen so anyone can tell
+// at a glance which version they are running.
+const GAME_BUILD = 'Equipment Upgrades — build 2026-07-05c';
+
 // Composition display rounding — largest-remainder method, the same trick
 // mission summaries use so reported gas percentages sum to exactly 100
 // instead of drifting to 99.9/100.1 from independent rounding.
