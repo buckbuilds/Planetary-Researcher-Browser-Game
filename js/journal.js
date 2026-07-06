@@ -64,7 +64,10 @@ const Journal = {
   },
 
   saveLastReading() {
-    if (!state.lastReading) return;
+    if (!state.lastReading) {
+      UI.appendOutput(`<span class="warn">No instrument reading to save yet — take a reading first.</span>`);
+      return;
+    }
     // Switch to journal tab so user sees the result
     const journalBtn = document.querySelector('.tab-bar button');
     if (journalBtn) UI.showTab('journal', journalBtn);

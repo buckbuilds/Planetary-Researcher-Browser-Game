@@ -283,6 +283,8 @@ const Screens = {
 
     const target = starSystem.planets[planetIndex];
     const reading = Instruments.radioOrbitalScan(target);
+    // Orbital scans count as readings too — lets "Save Reading" log them
+    state.lastReading = reading;
     const panel = document.createElement('div');
     panel.className = 'orbital-scan-panel popup-panel';
     panel.innerHTML = `<span class="reading">${reading}</span>`;
