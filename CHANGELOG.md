@@ -10,6 +10,11 @@
 - RP balance in the top HUD; the Equipment tab pulses when an upgrade is affordable.
 - Glossary entries for RP and equipment marks.
 
+### Fixed (playtest, same day)
+
+- Save Reading now works for orbital scans, and says so when there is no reading to save yet.
+- Atmosphere composition percentages now sum to exactly 100% everywhere (largest-remainder rounding, the same method real mission summaries use). The orbital scan also lists an "other traces" line so the top-3 gases account for the whole atmosphere.
+
 ### Changed
 
 - Save data now carries expedition-wide `equipment` and `requisition` fields; older saves migrate safely with a Mk I loadout and 0 RP.

@@ -53,3 +53,31 @@ const Events = {
     (this._listeners[event] || []).forEach(fn => fn(data));
   }
 };
+
+// Composition display rounding — largest-remainder method, the same trick
+// mission summaries use so reported gas percentages sum to exactly 100
+// instead of drifting to 99.9/100.1 from independent rounding.
+function roundCompositionPercents(composition, decimals) {
+  const factor = Math.pow(10, decimals);
+  const entries = Object.entries(composition)
+    .filter(([, frac]) => frac > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, frac]) => sum + frac, 0);
+  if (total <= 0) return [];
+
+  const scaled = entries.map(([gas, frac]) => {
+    const exact = (frac / total) * 100 * factor;
+    return { gas, floor: Math.floor(exact), remainder: exact - Math.floor(exact) };
+  });
+  let deficit = Math.round(100 * factor) - scaled.reduce((sum, e) => sum + e.floor, 0);
+  const byRemainder = scaled.slice().sort((a, b) => b.remainder - a.remainder);
+  for (let i = 0; deficit > 0; i = (i + 1) % byRemainder.length, deficit--) {
+    byRemainder[i].floor += 1;
+  }
+  return scaled.map(e => [e.gas, e.floor / factor]);
+}
+
+// Format a rounded percent without trailing zeros: 95.1, 0.037, 2
+function formatPercentValue(value, decimals) {
+  return parseFloat(value.toFixed(decimals)).toString();
+}

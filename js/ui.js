@@ -240,7 +240,7 @@ const UI = {
     if (!planet) return;
     const p = planet;
     const T = p.surfaceTemp - 273.15;
-    const comp = Object.entries(p.atmosphere.composition).sort((a, b) => b[1] - a[1]).map(([g, f]) => `${g}: ${(f * 100).toFixed(2)}%`).join(', ');
+    const comp = roundCompositionPercents(p.atmosphere.composition, 2).map(([g, pct]) => `${g}: ${formatPercentValue(pct, 2)}%`).join(', ');
     const unk = '<span style="color:var(--text-dim)">??? (use instruments)</span>';
     const hasSolar = Knowledge.hasUsedInstrument('solar') || Knowledge.hasUsedInstrument('star');
     const hasAtmo = Knowledge.hasUsedInstrument('atmo');

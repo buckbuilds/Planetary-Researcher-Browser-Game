@@ -93,10 +93,10 @@ const Instruments = {
     }
     lines.push(`\u2502`);
     lines.push(`\u2502 Composition:`);
-    Object.entries(comp).sort((a, b) => b[1] - a[1]).forEach(([gas, frac]) => {
-      if (frac > 0.0001) {
-        const bar = '\u2588'.repeat(Math.max(1, Math.round(frac * 30)));
-        lines.push(`\u2502  ${gas.padEnd(4)} ${(frac * 100).toFixed(frac < 0.01 ? 3 : 1).padStart(7)}%  ${bar}`);
+    roundCompositionPercents(comp, 3).forEach(([gas, pct]) => {
+      if (pct >= 0.001) {
+        const bar = '\u2588'.repeat(Math.max(1, Math.round(pct * 0.3)));
+        lines.push(`\u2502  ${gas.padEnd(4)} ${formatPercentValue(pct, 3).padStart(7)}%  ${bar}`);
       }
     });
     lines.push(`\u2502`);
@@ -580,11 +580,15 @@ const Instruments = {
     lines.push(`\u2502 Mass:     ${targetPlanet.massFactor.toFixed(2)} M\u2295`);
     lines.push(`\u2502`);
     lines.push(`\u2502 Atmosphere:`);
-    const topGases = Object.entries(targetPlanet.atmosphere.composition)
-      .sort((a, b) => b[1] - a[1]).slice(0, 3);
-    topGases.forEach(([gas, frac]) => {
-      lines.push(`\u2502   ${gas}: ${(frac * 100).toFixed(1)}%`);
+    const roundedGases = roundCompositionPercents(targetPlanet.atmosphere.composition, 1);
+    const topGases = roundedGases.slice(0, 3);
+    topGases.forEach(([gas, pct]) => {
+      lines.push(`\u2502   ${gas}: ${formatPercentValue(pct, 1)}%`);
     });
+    const otherPct = roundedGases.slice(3).reduce((sum, [, pct]) => sum + pct, 0);
+    if (otherPct > 0) {
+      lines.push(`\u2502   other traces: ${formatPercentValue(otherPct, 1)}%`);
+    }
     lines.push(`\u2502   Pressure: ${targetPlanet.atmosphere.pressure.toFixed(2)} atm`);
     lines.push(`\u2502`);
     lines.push(`\u2502 Surface temp: ~${(targetPlanet.surfaceTemp - 273.15).toFixed(0)}\u00B0C`);
