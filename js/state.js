@@ -53,8 +53,19 @@ function initState(planetCount) {
     lastReading: '',
     journal: [],
     savedJournals: [],
+    equipment: {},
+    requisition: { points: 0, totalEarned: 0, log: [] },
     saveVersion: 2
   };
+}
+
+// Equipment/requisition fields are expedition-global; older saves lack them.
+function normalizeResearcherGear(gameState) {
+  if (!gameState.equipment) gameState.equipment = {};
+  if (!gameState.requisition) gameState.requisition = { points: 0, totalEarned: 0, log: [] };
+  if (typeof gameState.requisition.points !== 'number') gameState.requisition.points = 0;
+  if (typeof gameState.requisition.totalEarned !== 'number') gameState.requisition.totalEarned = 0;
+  if (!Array.isArray(gameState.requisition.log)) gameState.requisition.log = [];
 }
 
 // Get the working state for the current planet
@@ -232,6 +243,7 @@ function normalizeSaveData(data) {
     migrated.visitedPlanets = { 0: true };
     migrated.planetStates[0] = oldState;
     migrated.saveVersion = 2;
+    normalizeResearcherGear(migrated);
     return { seed: data.seed, state: migrated };
   }
 
@@ -251,6 +263,7 @@ function normalizeSaveData(data) {
 
   if (!data.state.planetStates) data.state.planetStates = [];
   data.state.planetStates.forEach(ps => normalizePlanetState(ps));
+  normalizeResearcherGear(data.state);
   data.state.saveVersion = 2;
   return data;
 }

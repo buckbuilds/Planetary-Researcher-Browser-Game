@@ -7,7 +7,7 @@ const Game = {
     if (state.gameMode !== 'surface') return;
     const ps = getCurrentPlanetState();
     ps.x += dx; ps.y += dy;
-    ps.timeHours += 0.1;
+    ps.timeHours += Equipment.moveTimeCost();
     ps.explored[ps.x + ',' + ps.y] = true;
     const tile = getTile(ps.x, ps.y);
     Events.emit('move', { x: ps.x, y: ps.y, tile });
@@ -34,7 +34,8 @@ const Game = {
 
     // Terrain-revealing instruments
     if (type === 'lidar') {
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const lr = Equipment.lidarRadius();
+      for (let dy = -lr; dy <= lr; dy++) for (let dx = -lr; dx <= lr; dx++) {
         Knowledge.revealTerrain(ps.x + dx, ps.y + dy);
       }
     }
@@ -73,7 +74,7 @@ const Game = {
   deployDrone() {
     if (state.gameMode !== 'surface') return;
     const ps = getCurrentPlanetState();
-    const radius = 3;
+    const radius = Equipment.droneRadius();
     for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
       const tx = ps.x + dx, ty = ps.y + dy;
       ps.explored[tx + ',' + ty] = true;
@@ -227,8 +228,10 @@ const Game = {
 
     Anomalies.markReported(id);
     UI.showReadout(Anomalies.reportMessage(progress));
+    Equipment.award(Equipment.AWARDS.anomalyReport, `Anomaly ${progress.id} reported to Fleet`);
     UI.renderAnomalies();
     Journal.renderStats();
+    UI.updateHUD();
     this.save();
   },
 
@@ -342,6 +345,7 @@ const Game = {
           UI.renderMap();
           UI.renderPlanetInfo();
           UI.renderAnomalies();
+          UI.renderEquipment();
           Catalog.render();
           Journal.render();
           Journal.renderStats();
@@ -366,6 +370,7 @@ const Game = {
       UI.printLocation();
       UI.renderPlanetInfo();
       UI.renderAnomalies();
+      UI.renderEquipment();
       Catalog.render();
       Journal.render();
       Journal.renderStats();

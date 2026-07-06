@@ -26,6 +26,9 @@ const Instruments = {
 
     if (planet.atmosphere.pressure <= 0.01) return null;
 
+    // Mk II adaptive optics correct for weather — but nothing beats daylight.
+    if (Equipment.hasAdaptiveOptics()) return null;
+
     const w = Weather.getConditions(ps.x, ps.y);
     if (w.storm.active && w.storm.severity > 0.45) {
       const dusty = tile.biome === 'desert' || tile.biome === 'volcanic';
@@ -389,9 +392,12 @@ const Instruments = {
     lines.push(`\u2502  380nm${''.padEnd(28)}780nm`);
 
     lines.push(`\u2502`);
+    const highGain = Equipment.hasHighGainSpec();
+    const detectionFloor = highGain ? 0.005 : 0.05;
     lines.push(`\u2502 Detected emission lines (nm):`);
+    if (highGain) lines.push(`\u2502 <span style="color:var(--green)">High-gain detector \u2014 traces below 5% resolved</span>`);
     sorted.forEach(([element, abundance]) => {
-      if (abundance > 0.05 && ELEMENTS_SPECTRAL[element]) {
+      if (abundance > detectionFloor && ELEMENTS_SPECTRAL[element]) {
         const spec = ELEMENTS_SPECTRAL[element];
         const lineStr = spec.lines.slice(0, 4).map(l => l.toFixed(1)).join(', ');
         const bar = '\u2588'.repeat(Math.max(1, Math.round(abundance * 20)));
@@ -538,14 +544,17 @@ const Instruments = {
       });
 
       if (!foundPulsar) {
-        // Static / atmospheric noise
+        // Static / atmospheric noise \u2014 Mk II digital filter flattens it
+        const filtered = Equipment.hasRadioFilter();
         const noiseLevel = w.storm.active ? 'heavy' : planet.atmosphere.pressure > 1 ? 'moderate' : 'light';
         lines.push(`\u2502 Static \u2014 ${noiseLevel} atmospheric noise`);
+        if (filtered) lines.push(`\u2502 <span style="color:var(--green)">Digital filter active (\u221218 dB noise floor)</span>`);
         lines.push(`\u2502`);
         let noise = '\u2502  ';
         for (let j = 0; j < 36; j++) {
           const n = r();
-          if (n > 0.9) noise += '\u2588';
+          if (filtered) noise += n > 0.93 ? '\u2591' : ' ';
+          else if (n > 0.9) noise += '\u2588';
           else if (n > 0.7) noise += '\u2593';
           else if (n > 0.5) noise += '\u2592';
           else if (n > 0.3) noise += '\u2591';

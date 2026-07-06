@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-05 - Equipment Upgrades Update
+
+### Added
+
+- Fleet Requisition Points (RP): earned for reporting anomalies to Fleet (+3), cataloguing new species (+1), and classifying new biomes (+1).
+- New Equipment tab: spend RP to requisition Mk II equipment from Fleet.
+- Six Mk II upgrades: survey drone battery (radius 3 → 5), LIDAR long-range optics (radius 2 → 4), star tracker adaptive optics (holds lock through weather), radio digital noise filter, spectrometer high-gain detector (resolves trace elements below 5%), and suit mobility servos (surface moves take half the time).
+- RP balance in the top HUD; the Equipment tab pulses when an upgrade is affordable.
+- Glossary entries for RP and equipment marks.
+
+### Changed
+
+- Save data now carries expedition-wide `equipment` and `requisition` fields; older saves migrate safely with a Mk I loadout and 0 RP.
+
 ## 2026-06-20 - Anomaly Discovery Update
 
 ### Added

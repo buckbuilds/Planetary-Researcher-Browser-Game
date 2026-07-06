@@ -31,6 +31,7 @@ const UI = {
     document.getElementById('view-' + name).classList.add('active');
     if (clickedBtn) clickedBtn.classList.add('active');
     this.updateAnomalyTabSignal();
+    this.updateEquipmentTabSignal();
   },
 
   describeLocation(tile) {
@@ -141,6 +142,28 @@ const UI = {
     this.updateAnomalyTabSignal();
   },
 
+  renderEquipment() {
+    const el = document.getElementById('equipment-list');
+    if (!el) return;
+    el.innerHTML = Equipment.renderList();
+    this.updateEquipmentTabSignal();
+  },
+
+  updateEquipmentTabSignal() {
+    const btn = document.getElementById('tab-equipment');
+    if (!btn) return;
+    const view = document.getElementById('view-equipment');
+    const tabOpen = view && view.classList.contains('active');
+    if (tabOpen || !state) {
+      btn.classList.remove('attention');
+      return;
+    }
+    // Pulse when the researcher can afford something they don't own yet.
+    const points = Equipment.points();
+    const affordable = Equipment.CATALOG.some(item => !Equipment.isUpgraded(item.id) && points >= item.cost);
+    btn.classList.toggle('attention', affordable);
+  },
+
   updateAnomalyTabSignal() {
     const btn = document.getElementById('tab-anomalies');
     if (!btn) return;
@@ -202,6 +225,14 @@ const UI = {
       phaseEl.style.color = phase === 'night' ? 'var(--accent2)'
         : phase === 'dawn' || phase === 'dusk' ? 'var(--orange)'
         : 'var(--green)';
+    }
+
+    const rpEl = document.getElementById('hud-rp');
+    if (rpEl) {
+      const points = Equipment.points();
+      rpEl.textContent = points + ' RP';
+      const affordable = Equipment.CATALOG.some(item => !Equipment.isUpgraded(item.id) && points >= item.cost);
+      rpEl.style.color = affordable ? 'var(--green)' : 'var(--text-dim)';
     }
   },
 

@@ -90,10 +90,13 @@ textarea{resize:vertical}
 #instrument-bar{display:flex;flex-wrap:wrap;gap:4px}
 #instrument-bar button{font-size:11px;padding:3px 7px}
 
-#catalog-list{overflow-y:auto;flex:1;padding:8px 12px;font-size:11px}
-#catalog-list .entry{margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--card-border)}
-#catalog-list .entry-name{color:var(--accent3)}
-#catalog-list .entry-type{color:var(--text-dim);font-size:10px}
+#catalog-list,#equipment-list{overflow-y:auto;flex:1;padding:8px 12px;font-size:11px}
+#catalog-list .entry,#equipment-list .entry{margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--card-border)}
+#catalog-list .entry-name,#equipment-list .entry-name{color:var(--accent3)}
+#catalog-list .entry-type,#equipment-list .entry-type{color:var(--text-dim);font-size:10px}
+#equipment-list .section-title{color:var(--accent1);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+#equipment-list .dim{color:var(--text-dim)}
+#equipment-list .warn{color:var(--orange)}
 #catalog-list .scan-layers{margin-top:4px;font-size:10px}
 #catalog-list .scan-tag{display:inline-block;padding:1px 5px;border-radius:2px;margin-right:3px;font-size:9px;border:1px solid var(--card-border)}
 #catalog-list .scan-tag.done{border-color:var(--green);color:var(--green)}
@@ -212,6 +215,8 @@ textarea{resize:vertical}
   <div class="top-group"><span class="label">GRAV:</span><span class="value" id="hud-grav">—</span></div>
   <span class="sep">|</span>
   <div class="top-group"><span class="label">SKY:</span><span class="value" id="hud-phase">—</span></div>
+  <span class="sep">|</span>
+  <div class="top-group"><span class="label">RP:</span><span class="value" id="hud-rp">0 RP</span></div>
 </div>
 
 <div id="main">
@@ -277,6 +282,7 @@ textarea{resize:vertical}
       <button class="active" onclick="UI.showTab('journal', this)">Journal</button>
       <button onclick="UI.showTab('catalog', this)">Catalog</button>
       <button id="tab-anomalies" onclick="UI.showTab('anomalies', this)">Anomalies</button>
+      <button id="tab-equipment" onclick="UI.showTab('equipment', this)">Equipment</button>
       <button onclick="UI.showTab('planet', this)">Planet</button>
       <button onclick="UI.showTab('glossary', this)">Glossary</button>
     </div>
@@ -312,6 +318,9 @@ textarea{resize:vertical}
       </div>
       <div id="view-anomalies" class="right-view">
         <div id="anomaly-list"><span class="dim">No anomalous signatures logged.</span></div>
+      </div>
+      <div id="view-equipment" class="right-view">
+        <div id="equipment-list"><span class="dim">Start an expedition to access Fleet requisitions.</span></div>
       </div>
       <div id="view-planet" class="right-view">
         <div id="planet-info"></div>
@@ -351,6 +360,12 @@ textarea{resize:vertical}
             <div class="g-row"><span class="g-key">RAD</span><span class="g-def">Radiation dose rate after using the radiation instrument.</span></div>
             <div class="g-row"><span class="g-key">GRAV</span><span class="g-def">Surface gravity after enough physical survey data.</span></div>
             <div class="g-row"><span class="g-key">SKY</span><span class="g-def">Current light phase: Dawn, Daylight, Dusk, or Night.</span></div>
+            <div class="g-row"><span class="g-key">RP</span><span class="g-def">Requisition Points. Fleet grants them for reported anomalies, catalogued species, and classified biomes. Spend in the Equipment tab.</span></div>
+          </div>
+          <div class="g-section">
+            <div class="g-title">Equipment</div>
+            <div class="g-row"><span class="g-key">Mk I</span><span class="g-def">Standard-issue equipment. Every expedition starts with a full Mk I loadout.</span></div>
+            <div class="g-row"><span class="g-key">Mk II</span><span class="g-def">Upgraded equipment requisitioned from Fleet with RP. Applies to the whole expedition, on every planet.</span></div>
           </div>
           <div class="g-section">
             <div class="g-title">Map Symbols</div>
@@ -373,17 +388,18 @@ textarea{resize:vertical}
   </div>
 </div>
 
-<script src="js/core.js?v=20260704-expeditionlog2"></script>
-<script src="js/state.js?v=20260704-expeditionlog2"></script>
-<script src="js/anomalies.js?v=20260704-expeditionlog2"></script>
-<script src="js/world.js?v=20260704-expeditionlog2"></script>
-<script src="js/time.js?v=20260704-expeditionlog2"></script>
-<script src="js/weather.js?v=20260704-expeditionlog2"></script>
-<script src="js/instruments.js?v=20260704-expeditionlog2"></script>
-<script src="js/journal.js?v=20260704-expeditionlog2"></script>
-<script src="js/catalog.js?v=20260704-expeditionlog2"></script>
-<script src="js/ui.js?v=20260704-expeditionlog2"></script>
-<script src="js/screens.js?v=20260704-expeditionlog2"></script>
-<script src="js/game.js?v=20260704-expeditionlog2"></script>
+<script src="js/core.js?v=20260705-equipment1"></script>
+<script src="js/state.js?v=20260705-equipment1"></script>
+<script src="js/anomalies.js?v=20260705-equipment1"></script>
+<script src="js/world.js?v=20260705-equipment1"></script>
+<script src="js/time.js?v=20260705-equipment1"></script>
+<script src="js/weather.js?v=20260705-equipment1"></script>
+<script src="js/instruments.js?v=20260705-equipment1"></script>
+<script src="js/journal.js?v=20260705-equipment1"></script>
+<script src="js/catalog.js?v=20260705-equipment1"></script>
+<script src="js/equipment.js?v=20260705-equipment1"></script>
+<script src="js/ui.js?v=20260705-equipment1"></script>
+<script src="js/screens.js?v=20260705-equipment1"></script>
+<script src="js/game.js?v=20260705-equipment1"></script>
 </body>
 </html>
