@@ -57,6 +57,37 @@ const Equipment = {
     }
   ],
 
+  // Full loadout spec sheet — every instrument, ability, and honest
+  // limitation. Entries with upgradeId link to a CATALOG upgrade and
+  // their text reflects the currently installed mark.
+  INSTRUMENT_SPECS: [
+    { name: 'Atmospheric Analyzer', ability: 'Temperature, pressure (altitude-corrected), wind, visibility, precipitation, and full gas composition.', limitation: 'Readings are local — weather and elevation shift them tile to tile.' },
+    { name: 'Radiation Dosimeter', ability: 'Dose rate with cosmic vs. stellar breakdown; feeds the HUD RAD readout.', limitation: 'Stellar component swings with the day phase; going underground shields it.' },
+    { name: 'Star Tracker', upgradeId: 'star',
+      ability: 'Stellar positions and star classification from the night sky.',
+      limitationByMark: ['Needs night AND clear sky — storms, fog, or precipitation break the lock.', 'Adaptive optics hold lock through any weather. Daylight is still too bright — physics wins.'] },
+    { name: 'Solar Tracker', ability: 'Local star output, sun altitude, sunrise/sunset, and day length.', limitation: 'Needs the star above the horizon.' },
+    { name: 'Magnetometer', ability: 'Field strength and local vector behavior.', limitation: 'Local anomalies distort readings — which is exactly how you find them.' },
+    { name: 'LIDAR', upgradeId: 'lidar',
+      abilityByMark: ['Elevation, slope, and surface mapping; classifies terrain in a radius of 2.', 'Elevation, slope, and surface mapping; classifies terrain in a radius of 4.'],
+      limitation: 'Surface only — cannot see underground.' },
+    { name: 'Radar', ability: 'Subsurface structure, buried reflectors, and density gaps.', limitation: 'Penetrates only the top ~50 m.' },
+    { name: 'IR Camera', ability: 'Heat signatures and thermal contrast; spots warm fauna.', limitation: 'Needs thermal contrast — cold, still life can hide.' },
+    { name: 'Spectrometer', upgradeId: 'spec',
+      abilityByMark: ['Emission spectrum and mineral abundances; resolves elements above 5%.', 'Emission spectrum and mineral abundances; high-gain detector resolves traces below 5%.'],
+      limitation: 'Samples only the material at your current position.' },
+    { name: 'Seismometer', ability: 'Ground vibration, tremors, and repeating resonance patterns.', limitation: 'Passive — silent ground gives quiet readings.' },
+    { name: 'Radio', upgradeId: 'radio',
+      abilityByMark: ['Spectrum scan, manual tuning 1–999 MHz, signal hunting, and Fleet transmissions (Send Report).', 'Spectrum scan, manual tuning 1–999 MHz, signal hunting, and Fleet transmissions. Digital filter cuts static −18 dB.'],
+      limitationByMark: ['Atmospheric static can bury weak signals, especially in storms.', 'Very strong storms may still leave faint residual noise.'] },
+    { name: 'Survey Drone', upgradeId: 'drone',
+      abilityByMark: ['Aerial survey maps and classifies a 7×7 area in one flight.', 'High-density battery: maps and classifies an 11×11 area in one flight.'],
+      limitation: 'Battery-bound range; flies from your current position.' },
+    { name: 'Field Suit', upgradeId: 'suit',
+      abilityByMark: ['Standard mobility: each surface move takes 6 minutes.', 'Mobility servos: each surface move takes 3 minutes.'],
+      limitation: 'Time always passes — the day/night cycle waits for no one.' }
+  ],
+
   // ── State access ───────────────────────────────────────────────
   ensureState() {
     if (!state) return null;
@@ -139,26 +170,38 @@ const Equipment = {
     if (!req) return '<span class="dim">Start an expedition to access Fleet requisitions.</span>';
 
     let html = '';
-    html += `<div style="padding:4px 0 8px 0"><span class="section-title">FLEET REQUISITION</span>`;
-    html += `<div style="font-size:16px;color:var(--green);font-weight:700">${req.points} RP</div>`;
-    html += `<div class="dim" style="margin-top:4px">Fleet grants Requisition Points for field science:</div>`;
+    html += `<div style="padding:4px 0 8px 0"><span class="section-title">REQUISITION BALANCE</span>`;
+    html += `<div style="font-size:20px;color:var(--green);font-weight:700">${req.points} RP</div>`;
+    html += `<div class="dim" style="margin-top:4px">Earn Requisition Points by doing science:</div>`;
+    html += `<div class="dim">• Fleet Comms request completed: +2 to +5 RP</div>`;
     html += `<div class="dim">• Anomaly reported to Fleet: +${this.AWARDS.anomalyReport} RP</div>`;
     html += `<div class="dim">• New species catalogued: +${this.AWARDS.newSpecies} RP</div>`;
     html += `<div class="dim">• New biome classified: +${this.AWARDS.newBiome} RP</div></div>`;
 
-    html += this.CATALOG.map(item => {
-      const owned = this.isUpgraded(item.id);
-      const affordable = req.points >= item.cost;
-      let action;
-      if (owned) {
-        action = `<span style="color:var(--green);font-weight:700">✓ Mk II DELIVERED</span>`;
-      } else {
-        action = `<button onclick="Equipment.purchase('${item.id}')" ${affordable ? '' : 'disabled'} style="font-size:11px;padding:3px 8px${affordable ? '' : ';opacity:.45'}">Requisition — ${item.cost} RP</button>`;
+    html += `<div style="margin:4px 0 6px 0"><span class="section-title">FIELD LOADOUT</span></div>`;
+    html += this.INSTRUMENT_SPECS.map(spec => {
+      const item = spec.upgradeId ? this.getItem(spec.upgradeId) : null;
+      const owned = item ? this.isUpgraded(item.id) : false;
+      const mark = owned ? 1 : 0;
+      const ability = spec.abilityByMark ? spec.abilityByMark[mark] : spec.ability;
+      const limitation = spec.limitationByMark ? spec.limitationByMark[mark] : spec.limitation;
+
+      let upgradeRow = '';
+      if (item) {
+        if (owned) {
+          upgradeRow = `<div style="margin-top:4px"><span style="color:var(--green);font-weight:700">✓ Mk II DELIVERED</span></div>`;
+        } else {
+          const affordable = req.points >= item.cost;
+          upgradeRow = `<div style="margin-top:4px"><span class="dim">Mk II: ${item.effect}</span><br>`
+            + `<button onclick="Equipment.purchase('${item.id}')" ${affordable ? '' : 'disabled'} style="font-size:11px;padding:3px 8px;margin-top:3px${affordable ? '' : ';opacity:.45'}">Requisition — ${item.cost} RP</button></div>`;
+        }
       }
+
       return `<div class="entry">
-        <span class="entry-name">${item.name}</span> <span class="entry-type">${owned ? 'Mk II' : 'Mk I'}</span><br>
-        <div class="dim" style="margin:3px 0">${item.effect}</div>
-        <div style="margin-top:4px">${action}</div>
+        <span class="entry-name">${spec.name}</span> <span class="entry-type">${item ? (owned ? 'Mk II' : 'Mk I') : 'standard issue'}</span><br>
+        <div style="margin:3px 0">${ability}</div>
+        <div class="dim">Limitation: ${limitation}</div>
+        ${upgradeRow}
       </div>`;
     }).join('');
 
