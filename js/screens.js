@@ -204,8 +204,11 @@ const Screens = {
       html += ` <span style="color:var(--green)">[VISITED]</span>`;
     }
     html += `</div>`;
+    html += `<div style="text-align:center;margin-top:8px">`;
+    html += `<button onclick="Game.launchTo(${selected})" style="border-color:var(--green);color:var(--green);font-weight:700;padding:6px 18px">\uD83D\uDE80 Launch to ${this._escapeHtml(sp.name)}</button>`;
+    html += `</div>`;
     html += `<div style="text-align:center;color:var(--text-dim);font-size:11px;margin-top:4px">`;
-    html += `\u2190\u2192 select planet \u2502 ENTER launch`;
+    html += `\u2190\u2192 select planet \u2502 ENTER or Launch button to land`;
     html += `</div>`;
 
     // Build container: wrapper holds pre (centered) + nav (bottom)
@@ -242,14 +245,14 @@ const Screens = {
     seedBar.innerHTML = `
       <span class="seed-label">System Seed</span>
       <input id="seed-input" type="text" value="${seedValue}" placeholder="system seed" onkeydown="if(event.key==='Enter')Game.loadSeed()">
-      <button onclick="Game.loadSeed()">Go</button>
+      <button onclick="Game.loadSeed()">Load Seed</button>
       <button onclick="Game.randomPlanetInSystem()">\uD83E\uDE90 Random Planet</button>
     `;
 
     container.innerHTML = '';
     container.appendChild(wrapper);
-    container.appendChild(seedBar);
     container.appendChild(nav);
+    container.appendChild(seedBar);
   },
 
   scanOrToggle() {
