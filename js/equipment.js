@@ -184,3 +184,55 @@ Events.on('newBiome', data => {
   const biomeName = (typeof BIOME_NAMES !== 'undefined' && BIOME_NAMES[data.biome]) ? BIOME_NAMES[data.biome] : data.biome;
   Equipment.award(Equipment.AWARDS.newBiome, `New biome classified: ${biomeName}`);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// FLEET REQUESTS: Fleet Comms objectives that actually pay.
+// Collect the requested data (right instrument, right place), then
+// transmit with Send Report to receive the RP reward.
+// ═══════════════════════════════════════════════════════════════
+const FleetRequests = {
+  list() {
+    return (typeof starSystem !== 'undefined' && starSystem && starSystem.fleetRequests) || [];
+  },
+
+  progress(id) {
+    if (!state.fleetRequestProgress) state.fleetRequestProgress = {};
+    if (!state.fleetRequestProgress[id]) state.fleetRequestProgress[id] = { collected: false, paid: false };
+    return state.fleetRequestProgress[id];
+  },
+
+  status(req) {
+    const p = this.progress(req.id);
+    return p.paid ? 'paid' : p.collected ? 'ready' : 'open';
+  },
+
+  // Called after each successful surface scan.
+  recordScan(type, tile) {
+    if (!state || !planet) return;
+    this.list().forEach(req => {
+      if (req.instrument !== type) return;
+      const p = this.progress(req.id);
+      if (p.collected || p.paid) return;
+      if (req.planetName && req.planetName !== planet.name) return;
+      if (req.biome && tile.biome !== req.biome) return;
+      // Star tracker data only counts if the sky actually allowed a lock.
+      if (type === 'star' && !Instruments.canRecordEvidence('star', tile)) return;
+      p.collected = true;
+      UI.appendOutput(`<span style="color:var(--orange)">📡 Fleet request fulfilled — this is the data ${req.sender} asked for. Send Report to transmit it (+${req.reward} RP).</span>`);
+    });
+  },
+
+  // Called from Send Report: pays out everything collected and unpaid.
+  payCollected() {
+    const paid = [];
+    this.list().forEach(req => {
+      const p = this.progress(req.id);
+      if (p.collected && !p.paid) {
+        p.paid = true;
+        Equipment.award(req.reward, `Fleet request completed — ${req.sender}`);
+        paid.push(req);
+      }
+    });
+    return paid;
+  }
+};

@@ -68,14 +68,14 @@ function generateFleetRequests(seed, planets) {
   ];
 
   const biomeRequests = [
-    'from any volcanic terrain',
-    'in mountainous regions',
-    'along ocean shorelines',
-    'in ice sheet environments',
-    'from desert terrain',
-    'within forested biomes',
-    'from marshland areas',
-    'at cave entrances',
+    { text: 'from any volcanic terrain', biome: 'volcanic' },
+    { text: 'in mountainous regions', biome: 'mountain' },
+    { text: 'along ocean shorelines', biome: 'ocean' },
+    { text: 'in ice sheet environments', biome: 'ice' },
+    { text: 'from desert terrain', biome: 'desert' },
+    { text: 'within forested biomes', biome: 'forest' },
+    { text: 'from marshland areas', biome: 'marsh' },
+    { text: 'at cave entrances', biome: 'cave' },
   ];
 
   for (let i = 0; i < count; i++) {
@@ -87,21 +87,24 @@ function generateFleetRequests(seed, planets) {
     const req = instrumentRequests[Math.floor(r() * instrumentRequests.length)];
     const targetsPlanet = r() > 0.4 && planets.length > 0;
     const targetPlanet = targetsPlanet ? planets[Math.floor(r() * planets.length)] : null;
-    const biomeSpec = r() > 0.5 ? biomeRequests[Math.floor(r() * biomeRequests.length)] : '';
+    const biomeSpec = r() > 0.5 ? biomeRequests[Math.floor(r() * biomeRequests.length)] : null;
     const priority = r() > 0.7 ? 'HIGH' : r() > 0.3 ? 'MED' : 'LOW';
 
     let message = `Requesting ${req.desc}`;
-    if (biomeSpec) message += ` ${biomeSpec}`;
+    if (biomeSpec) message += ` ${biomeSpec.text}`;
     if (targetPlanet) message += ` on ${targetPlanet.name}`;
     else message += ' in this system';
     message += `. ${req.detail}`;
 
+    const rewards = { HIGH: 5, MED: 3, LOW: 2 };
     requests.push({
       id: i,
       sender,
       message,
       priority,
+      reward: rewards[priority] || 2,
       instrument: req.instrument,
+      biome: biomeSpec ? biomeSpec.biome : null,
       planetName: targetPlanet ? targetPlanet.name : null
     });
   }

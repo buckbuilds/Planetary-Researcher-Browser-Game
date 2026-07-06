@@ -9,6 +9,7 @@
 - Six Mk II upgrades: survey drone battery (radius 3 → 5), LIDAR long-range optics (radius 2 → 4), star tracker adaptive optics (holds lock through weather), radio digital noise filter, spectrometer high-gain detector (resolves trace elements below 5%), and suit mobility servos (surface moves take half the time).
 - RP balance in the top HUD; the Equipment tab pulses when an upgrade is affordable.
 - Glossary entries for RP and equipment marks.
+- Fleet Comms requests are now real paying objectives (Chris's design): each shows its RP reward (HIGH +5, MED +3, LOW +2) and status. Take the requested reading at the requested place, then transmit with Send Report to collect. Your RP balance shows in the Fleet Comms header and stays live in the top HUD on every screen.
 
 ### Fixed (playtest, same day)
 

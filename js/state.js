@@ -55,6 +55,7 @@ function initState(planetCount) {
     savedJournals: [],
     equipment: {},
     requisition: { points: 0, totalEarned: 0, log: [] },
+    fleetRequestProgress: {},
     saveVersion: 2
   };
 }
@@ -66,6 +67,7 @@ function normalizeResearcherGear(gameState) {
   if (typeof gameState.requisition.points !== 'number') gameState.requisition.points = 0;
   if (typeof gameState.requisition.totalEarned !== 'number') gameState.requisition.totalEarned = 0;
   if (!Array.isArray(gameState.requisition.log)) gameState.requisition.log = [];
+  if (!gameState.fleetRequestProgress) gameState.fleetRequestProgress = {};
 }
 
 // Get the working state for the current planet

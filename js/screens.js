@@ -253,6 +253,7 @@ const Screens = {
     container.appendChild(wrapper);
     container.appendChild(nav);
     container.appendChild(seedBar);
+    UI.updateHUD();
   },
 
   scanOrToggle() {
@@ -341,8 +342,8 @@ const Screens = {
     panel.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--orange);padding:16px 20px;font-size:12px;white-space:pre-wrap;max-width:500px;z-index:20;border-radius:4px';
 
     let html = '';
-    html += `<div style="color:var(--orange);font-weight:700;margin-bottom:8px">\uD83D\uDCE1 FLEET COMMS \u2014 ${starSystem.fleetRequests.length} ACTIVE REQUESTS</div>`;
-    html += `<div style="color:var(--text-dim);margin-bottom:12px;font-size:11px">"Researchers, we respectfully request your assistance\n in gathering data on the following:"</div>`;
+    html += `<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px"><span style="color:var(--orange);font-weight:700">\uD83D\uDCE1 FLEET COMMS \u2014 ${starSystem.fleetRequests.length} ACTIVE REQUESTS</span><span style="color:var(--green);font-weight:700">${Equipment.points()} RP</span></div>`;
+    html += `<div style="color:var(--text-dim);margin-bottom:12px;font-size:11px">"Researchers, we respectfully request your assistance\n in gathering data on the following. Rewards paid on transmission."</div>`;
 
     starSystem.fleetRequests.forEach((req, i) => {
       const priColor = req.priority === 'HIGH' ? 'var(--orange)' : req.priority === 'MED' ? 'var(--accent1)' : 'var(--text-dim)';
@@ -361,8 +362,14 @@ const Screens = {
         'line-height:1.45',
         'white-space:normal'
       ].join(';');
+      const reqStatus = FleetRequests.status(req);
+      const statusTag = reqStatus === 'paid'
+        ? ` <span style="color:var(--green);font-weight:700">\u2713 COMPLETED</span>`
+        : reqStatus === 'ready'
+          ? ` <span style="color:var(--orange);font-weight:700">DATA READY \u2014 SEND REPORT</span>`
+          : '';
       html += `<button type="button" class="fleet-request" onclick="Screens.selectFleetRequest(${i})" style="${style}">`;
-      html += `<span style="color:var(--accent3)">${sender}</span> <span style="color:${priColor}">[${priority}]</span>`;
+      html += `<span style="color:var(--accent3)">${sender}</span> <span style="color:${priColor}">[${priority}]</span> <span style="color:var(--green)">+${req.reward} RP</span>${statusTag}`;
       html += `<div class="fleet-message">"${message}"</div>`;
       html += `</button>`;
     });

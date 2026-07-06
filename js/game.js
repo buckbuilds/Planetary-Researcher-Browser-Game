@@ -62,6 +62,8 @@ const Game = {
 
     // No auto-journal entries — player decides what to record
 
+    FleetRequests.recordScan(type, tile);
+
     ps.timeHours += 0.05;
     UI.updateHUD();
     UI.renderPlanetInfo();
@@ -210,8 +212,20 @@ const Game = {
     lines.push(`\u2502`);
     lines.push(`\u2502 <span style="color:var(--accent3)">${sender}:</span>`);
     lines.push(`\u2502 <span style="color:var(--text-dim)">"${ack}"</span>`);
+
+    const paidRequests = FleetRequests.payCollected();
+    if (paidRequests.length > 0) {
+      lines.push(`\u2502`);
+      paidRequests.forEach(req => {
+        lines.push(`\u2502 <span style="color:var(--green)">\u2713 Request completed for ${req.sender} \u2014 +${req.reward} RP</span>`);
+      });
+    }
     lines.push(`\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518`);
     UI.showReadout(lines.join('\n'));
+    if (paidRequests.length > 0) {
+      UI.updateHUD();
+      this.save();
+    }
   },
 
   reportAnomaly(id) {

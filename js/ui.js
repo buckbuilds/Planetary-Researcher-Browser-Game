@@ -189,6 +189,15 @@ const UI = {
   },
 
   updateHUD() {
+    // RP is expedition-wide — keep the counter live on every screen.
+    const rpEl = document.getElementById('hud-rp');
+    if (rpEl && state) {
+      const points = Equipment.points();
+      rpEl.textContent = points + ' RP';
+      const affordable = Equipment.CATALOG.some(item => !Equipment.isUpgraded(item.id) && points >= item.cost);
+      rpEl.style.color = affordable ? 'var(--green)' : 'var(--text-dim)';
+    }
+
     if (!planet || state.gameMode !== 'surface') return;
     const ps = getCurrentPlanetState();
     if (!ps) return;
@@ -227,13 +236,6 @@ const UI = {
         : 'var(--green)';
     }
 
-    const rpEl = document.getElementById('hud-rp');
-    if (rpEl) {
-      const points = Equipment.points();
-      rpEl.textContent = points + ' RP';
-      const affordable = Equipment.CATALOG.some(item => !Equipment.isUpgraded(item.id) && points >= item.cost);
-      rpEl.style.color = affordable ? 'var(--green)' : 'var(--text-dim)';
-    }
   },
 
   renderPlanetInfo() {
