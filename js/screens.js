@@ -5,6 +5,15 @@
 const Screens = {
   _animFrame: null,
 
+  _escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
   show(hideJournal) {
     document.getElementById('screen-container').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'none';
@@ -17,6 +26,70 @@ const Screens = {
     document.getElementById('left-panel').style.display = 'flex';
     document.getElementById('right-panel').style.display = 'flex';
     document.getElementById('top-bar').style.display = 'flex';
+  },
+
+  formatDate(value) {
+    if (!value) return 'never';
+    try {
+      return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    } catch (e) {
+      return value;
+    }
+  },
+
+  renderExpeditionLog() {
+    this.show(true);
+    const container = document.getElementById('screen-container');
+    const store = loadExpeditionStore();
+    const expeditions = store.expeditions
+      .slice()
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+
+    const cards = expeditions.length
+      ? expeditions.map(expedition => {
+        const summary = expedition.summary || summarizeExpedition(expedition.data);
+        const name = this._escapeHtml(expedition.name || expeditionDefaultName(summary.seed));
+        const seed = this._escapeHtml(summary.seed || 'unknown');
+        const updated = this._escapeHtml(this.formatDate(expedition.updatedAt));
+        const id = this._escapeHtml(expedition.id);
+        const entries = summary.entries || 0;
+        const visited = summary.visited || 0;
+        return `
+          <div class="expedition-card" data-expedition-id="${id}">
+            <div>
+              <div class="expedition-name">${name}</div>
+              <div class="expedition-meta">
+                <span>Seed ${seed}</span>
+                <span>${visited} visited</span>
+                <span>${entries} notes</span>
+                <span>Last played ${updated}</span>
+              </div>
+            </div>
+            <div class="expedition-actions">
+              <button data-action="continue" data-expedition-id="${id}" onclick="Game.openExpedition('${id}')">Continue</button>
+              <button data-action="export" data-expedition-id="${id}" onclick="Game.exportExpedition('${id}')">Export</button>
+              <button data-action="delete" data-expedition-id="${id}" onclick="Game.deleteExpedition('${id}')" style="border-color:var(--orange)">Delete</button>
+            </div>
+          </div>`;
+      }).join('')
+      : `<div class="empty-log">No saved expeditions yet.</div>`;
+
+    container.innerHTML = `
+      <div class="expedition-log">
+        <div class="log-header">
+          <div>
+            <h1>Expedition Log</h1>
+            <div class="log-subtitle">Choose a saved expedition or start a fresh one.</div>
+          </div>
+          <div class="log-actions">
+            <button onclick="Game.newExpedition()" style="border-color:var(--green)">New Expedition</button>
+            <button onclick="Game.importExpedition()">Import Save</button>
+          </div>
+        </div>
+        <div class="expedition-list">${cards}</div>
+        <input id="expedition-import-file" type="file" accept="application/json,.json" style="display:none" onchange="Game.importExpeditionFile(this)">
+      </div>
+    `;
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -102,13 +175,13 @@ const Screens = {
           planets.forEach((p, i) => {
             if (p._mapX === x && p._mapY === y) {
               isPlanet = true;
-              if (i === selected) {
-                styled = `<span style="color:var(--accent3);font-weight:700;text-decoration:underline">${ch}</span>`;
-              } else if (state.visitedPlanets[i]) {
-                styled = `<span style="color:var(--green)">${ch}</span>`;
-              } else {
-                styled = `<span style="color:var(--text)">${ch}</span>`;
-              }
+              const safeName = this._escapeHtml(p.name);
+              const className = i === selected
+                ? 'planet-choice selected-planet'
+                : state.visitedPlanets[i]
+                  ? 'planet-choice visited-planet'
+                  : 'planet-choice unvisited-planet';
+              styled = `<span class="${className}" data-planet-index="${i}" onclick="Screens.selectPlanet(${i})" title="${safeName}">${ch}</span>`;
             }
           });
           if (!isPlanet && ch === '\u00B7') {
@@ -125,6 +198,7 @@ const Screens = {
     html += `\n<div style="text-align:center;margin-top:4px">`;
     html += `<span style="color:var(--accent3);font-weight:700">\u25B6 ${sp.name}</span>`;
     html += `<span style="color:var(--text-dim)"> \u2014 ${sp.orbit.au.toFixed(2)} AU</span>`;
+    html += `<span class="selected-planet-badge">SELECTED</span>`;
     if (state.visitedPlanets[selected]) {
       html += ` <span style="color:var(--green)">[VISITED]</span>`;
     }
@@ -136,7 +210,7 @@ const Screens = {
     // Build container: wrapper holds pre (centered) + nav (bottom)
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;width:100%';
-    wrapper.innerHTML = `<pre style="font-family:var(--font);line-height:1.2;font-size:13px">${html}</pre>`;
+    wrapper.innerHTML = `<pre class="system-map" style="font-family:var(--font);line-height:1.2;font-size:13px">${html}</pre>`;
 
     const nav = document.createElement('div');
     nav.className = 'nav-bar';
@@ -151,6 +225,7 @@ const Screens = {
     nav.innerHTML = `
       <button onclick="Game.prevSystem()" ${canBack ? '' : 'disabled style="opacity:0.3"'}>\u25C0 Prev System</button>
       <button onclick="Game.nextSystem()" ${canFwd ? '' : 'disabled style="opacity:0.3"'}>\u25B6 Next System</button>
+      <button onclick="Game.showExpeditionLog()">Expedition Log</button>
       <button onclick="Game.randomPlanet()" style="border-color:var(--green)">\uD83C\uDF0C Random System</button>
       ${hasFleet ? `<button id="btn-fleet" onclick="Screens.toggleFleetComms()" class="${fleetOpen ? 'btn-active' : ''}" style="border-color:var(--orange)">\uD83D\uDCE1 Fleet Comms</button>` : ''}
       <button id="btn-scan" onclick="Screens.scanOrToggle()" class="${scanOpen ? 'btn-active' : ''}" style="border-color:${isScanned ? 'var(--accent1)' : 'var(--text-dim)'}">\uD83D\uDCE1 ${isScanned ? 'Orbital Scan' : 'Scan Planet'}</button>
@@ -164,10 +239,10 @@ const Screens = {
     const seedBar = document.createElement('div');
     seedBar.className = 'seed-bar';
     seedBar.innerHTML = `
-      <span class="seed-label">New Expedition</span>
+      <span class="seed-label">System Seed</span>
       <input id="seed-input" type="text" value="${seedValue}" placeholder="system seed" onkeydown="if(event.key==='Enter')Game.loadSeed()">
       <button onclick="Game.loadSeed()">Go</button>
-      <button onclick="Game.randomPlanet()">\uD83E\uDE90 Random</button>
+      <button onclick="Game.randomPlanetInSystem()">\uD83E\uDE90 Random Planet</button>
     `;
 
     container.innerHTML = '';
@@ -214,6 +289,40 @@ const Screens = {
     container.appendChild(panel);
   },
 
+  selectPlanet(planetIndex) {
+    if (!starSystem || !starSystem.planets[planetIndex]) return;
+    state.gameMode = 'map';
+    state.currentPlanetIndex = -1;
+    state.selectedPlanetIndex = planetIndex;
+    planet = null;
+
+    const returnBtn = document.getElementById('btn-return-ship');
+    if (returnBtn) returnBtn.style.display = 'none';
+
+    this.renderSystemMap();
+    saveGame();
+  },
+
+  selectFleetRequest(requestIndex) {
+    const req = starSystem.fleetRequests && starSystem.fleetRequests[requestIndex];
+    if (!req) return;
+
+    const targetIndex = req.planetName
+      ? starSystem.planets.findIndex(p => p.name === req.planetName)
+      : -1;
+
+    if (targetIndex >= 0) this.selectPlanet(targetIndex);
+    else {
+      state.gameMode = 'map';
+      state.currentPlanetIndex = -1;
+      planet = null;
+      const returnBtn = document.getElementById('btn-return-ship');
+      if (returnBtn) returnBtn.style.display = 'none';
+      this.renderSystemMap();
+      saveGame();
+    }
+  },
+
   toggleFleetComms() {
     const container = document.getElementById('screen-container');
     const btn = document.getElementById('btn-fleet');
@@ -229,12 +338,27 @@ const Screens = {
     html += `<div style="color:var(--orange);font-weight:700;margin-bottom:8px">\uD83D\uDCE1 FLEET COMMS \u2014 ${starSystem.fleetRequests.length} ACTIVE REQUESTS</div>`;
     html += `<div style="color:var(--text-dim);margin-bottom:12px;font-size:11px">"Researchers, we respectfully request your assistance\n in gathering data on the following:"</div>`;
 
-    starSystem.fleetRequests.forEach(req => {
+    starSystem.fleetRequests.forEach((req, i) => {
       const priColor = req.priority === 'HIGH' ? 'var(--orange)' : req.priority === 'MED' ? 'var(--accent1)' : 'var(--text-dim)';
-      html += `<div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--card-border)">`;
-      html += `<span style="color:var(--accent3)">${req.sender}</span> <span style="color:${priColor}">[${req.priority}]</span>\n`;
-      html += `<span style="color:var(--text-dim)">"${req.message}"</span>`;
-      html += `</div>`;
+      const sender = this._escapeHtml(req.sender);
+      const message = this._escapeHtml(req.message);
+      const priority = this._escapeHtml(req.priority);
+      const style = [
+        'display:block',
+        'width:100%',
+        'margin-bottom:10px',
+        'padding:8px 10px',
+        'border:1px solid var(--card-border)',
+        'border-radius:3px',
+        'text-align:left',
+        'font-size:12px',
+        'line-height:1.45',
+        'white-space:normal'
+      ].join(';');
+      html += `<button type="button" class="fleet-request" onclick="Screens.selectFleetRequest(${i})" style="${style}">`;
+      html += `<span style="color:var(--accent3)">${sender}</span> <span style="color:${priColor}">[${priority}]</span>`;
+      html += `<div class="fleet-message">"${message}"</div>`;
+      html += `</button>`;
     });
 
     html += `<div style="text-align:center;margin-top:8px"><button onclick="Screens.toggleFleetComms()" style="border-color:var(--orange)">Close</button></div>`;

@@ -22,13 +22,41 @@ textarea{resize:vertical}
 
 #screen-container{display:none;flex:1;flex-direction:column;background:var(--bg);align-items:center;justify-content:center;padding:20px;overflow:auto;position:relative}
 #screen-container pre{margin:0 auto;width:fit-content}
+#screen-container .system-map .planet-choice{display:inline-block;width:1ch;text-align:center;border-radius:2px;cursor:pointer}
+#screen-container .system-map .planet-choice:hover{color:var(--orange);background:rgba(245,158,11,.18);box-shadow:0 0 0 1px rgba(245,158,11,.65),0 0 8px rgba(245,158,11,.5)}
+#screen-container .system-map .planet-choice.visited-planet{color:var(--green)}
+#screen-container .system-map .planet-choice.unvisited-planet{color:var(--text)}
+#screen-container .system-map .selected-planet{color:var(--bg);background:var(--orange);font-weight:700;box-shadow:0 0 0 1px var(--orange),0 0 10px rgba(245,158,11,.85);text-shadow:0 0 2px #fff;animation:selectedPlanetPulse 1.2s ease-in-out infinite}
+#screen-container .selected-planet-badge{display:inline-block;margin-left:8px;padding:1px 6px;border:1px solid var(--orange);border-radius:3px;color:var(--orange);font-size:10px;font-weight:700}
+@keyframes selectedPlanetPulse{
+  0%,100%{box-shadow:0 0 0 1px var(--orange),0 0 7px rgba(245,158,11,.6)}
+  50%{box-shadow:0 0 0 1px #fff,0 0 16px rgba(245,158,11,1)}
+}
 #screen-container .nav-bar{flex-shrink:0;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:8px 0}
 #screen-container .nav-bar button.btn-active{background:var(--accent1);border-color:var(--accent2)}
 #screen-container .seed-bar{flex-shrink:0;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--card-border);background:var(--card);border-radius:4px;margin-top:10px}
 #screen-container .seed-bar .seed-label{color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px}
 #screen-container .seed-bar input{min-width:210px;background:var(--bg)}
+#screen-container .expedition-log{width:min(760px,100%);display:flex;flex-direction:column;gap:12px}
+#screen-container .expedition-log h1{font-size:18px;color:var(--accent1);letter-spacing:1px;text-transform:uppercase}
+#screen-container .expedition-log .log-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+#screen-container .expedition-log .log-subtitle{color:var(--text-dim);font-size:12px;margin-top:2px}
+#screen-container .expedition-log .log-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#screen-container .expedition-log .expedition-list{display:flex;flex-direction:column;gap:8px}
+#screen-container .expedition-log .expedition-card{display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 12px;border:1px solid var(--card-border);background:var(--card);border-radius:4px}
+#screen-container .expedition-log .expedition-card:hover{border-color:var(--accent1)}
+#screen-container .expedition-log .expedition-name{color:var(--accent3);font-weight:700;font-size:13px}
+#screen-container .expedition-log .expedition-meta{color:var(--text-dim);font-size:11px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+#screen-container .expedition-log .expedition-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+#screen-container .expedition-log .empty-log{padding:18px;border:1px dashed var(--card-border);color:var(--text-dim);text-align:center;border-radius:4px}
 #screen-container .popup-panel{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--accent1);padding:10px 14px;font-size:12px;white-space:pre-wrap;max-width:420px;z-index:10;border-radius:4px}
 #screen-container .reading{color:var(--green)}
+#screen-container .fleet-comms-panel .fleet-request{background:var(--card);color:var(--text)}
+#screen-container .fleet-comms-panel .fleet-request .fleet-message{color:var(--text-dim);margin-top:4px}
+#screen-container .fleet-comms-panel .fleet-request:hover,
+#screen-container .fleet-comms-panel .fleet-request:focus-visible{background:rgba(245,158,11,.12);border-color:var(--orange);color:var(--text);box-shadow:0 0 0 1px rgba(245,158,11,.28)}
+#screen-container .fleet-comms-panel .fleet-request:hover .fleet-message,
+#screen-container .fleet-comms-panel .fleet-request:focus-visible .fleet-message{color:var(--text)}
 
 #top-bar{display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--card);border-bottom:1px solid var(--card-border);flex-shrink:0;flex-wrap:wrap}
 #top-bar .label{color:var(--text-dim);font-size:11px}
@@ -274,14 +302,9 @@ textarea{resize:vertical}
           </div>
           <textarea id="journal-input" placeholder="Record your observations, theories, analyses..."></textarea>
           <div style="display:flex;gap:4px;margin-top:4px">
-            <button onclick="Journal.writeNote()" style="flex:1">Save Entry</button>
+            <button onclick="Journal.writeNote()" style="flex:1">Save Note</button>
             <button onclick="Journal.saveLastReading()" title="Save last instrument reading to journal">&#x1f4be; Save Reading</button>
           </div>
-          <div style="display:flex;gap:4px;margin-top:6px;border-top:1px solid var(--card-border);padding-top:6px">
-            <button onclick="Journal.archiveJournal()" style="flex:1;border-color:var(--orange)">&#x1f4be; Save &amp; New Journal</button>
-            <button onclick="Journal.toggleSavedList()" style="border-color:var(--accent2)">&#x1f4da; Saved</button>
-          </div>
-          <div id="saved-journals" style="display:none;margin-top:6px;max-height:200px;overflow-y:auto"></div>
         </div>
       </div>
       <div id="view-catalog" class="right-view">
@@ -350,17 +373,17 @@ textarea{resize:vertical}
   </div>
 </div>
 
-<script src="js/core.js"></script>
-<script src="js/state.js"></script>
-<script src="js/anomalies.js"></script>
-<script src="js/world.js"></script>
-<script src="js/time.js"></script>
-<script src="js/weather.js"></script>
-<script src="js/instruments.js"></script>
-<script src="js/journal.js"></script>
-<script src="js/catalog.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/screens.js"></script>
-<script src="js/game.js"></script>
+<script src="js/core.js?v=20260704-expeditionlog2"></script>
+<script src="js/state.js?v=20260704-expeditionlog2"></script>
+<script src="js/anomalies.js?v=20260704-expeditionlog2"></script>
+<script src="js/world.js?v=20260704-expeditionlog2"></script>
+<script src="js/time.js?v=20260704-expeditionlog2"></script>
+<script src="js/weather.js?v=20260704-expeditionlog2"></script>
+<script src="js/instruments.js?v=20260704-expeditionlog2"></script>
+<script src="js/journal.js?v=20260704-expeditionlog2"></script>
+<script src="js/catalog.js?v=20260704-expeditionlog2"></script>
+<script src="js/ui.js?v=20260704-expeditionlog2"></script>
+<script src="js/screens.js?v=20260704-expeditionlog2"></script>
+<script src="js/game.js?v=20260704-expeditionlog2"></script>
 </body>
 </html>

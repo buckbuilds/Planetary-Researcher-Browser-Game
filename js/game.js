@@ -351,12 +351,135 @@ const Game = {
     });
   },
 
+  _resetSystemHistory(seed) {
+    this._systemHistory = [seed];
+    this._systemHistoryIndex = 0;
+  },
+
+  _resumeLoadedGame() {
+    const seedInput = document.getElementById('seed-input');
+    if (seedInput) seedInput.value = starSystem.seed;
+
+    if (state.gameMode === 'surface' && state.currentPlanetIndex >= 0) {
+      Screens.hide();
+      document.getElementById('btn-return-ship').style.display = 'inline-block';
+      UI.printLocation();
+      UI.renderPlanetInfo();
+      UI.renderAnomalies();
+      Catalog.render();
+      Journal.render();
+      Journal.renderStats();
+    } else {
+      state.gameMode = 'map';
+      state.currentPlanetIndex = -1;
+      planet = null;
+      Screens.renderSystemMap();
+    }
+  },
+
+  showExpeditionLog() {
+    Screens.renderExpeditionLog();
+  },
+
+  openExpedition(id) {
+    if (!this.load(id)) return;
+    this._resetSystemHistory(starSystem.seed);
+    this._resumeLoadedGame();
+  },
+
+  newExpedition() {
+    const seed = Math.random().toString(36).substr(2, 8);
+    const defaultName = expeditionDefaultName(seed);
+    const name = prompt('Name this expedition:', defaultName);
+    if (name === null) return;
+    this.startNewExpedition(seed, name.trim() || defaultName);
+  },
+
+  startNewExpedition(seed, name) {
+    starSystem = generateStarSystem(seed);
+    state = initState(starSystem.planets.length);
+    state.gameMode = 'map';
+    planet = null;
+    activeExpeditionId = null;
+    activeExpeditionId = createExpeditionSlot(seed, name || expeditionDefaultName(seed), serializeGame());
+    this._resetSystemHistory(seed);
+    Screens.renderSystemMap();
+    this.save();
+  },
+
+  exportExpedition(id) {
+    const expedition = getExpedition(id);
+    if (!expedition) return;
+    const payload = {
+      type: 'planetary-expedition-save',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      expedition: {
+        name: expedition.name,
+        createdAt: expedition.createdAt,
+        updatedAt: expedition.updatedAt,
+        data: expedition.data
+      }
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = (expedition.name || 'expedition').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+    link.href = url;
+    link.download = `${safeName || 'expedition'}-save.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  importExpedition() {
+    const input = document.getElementById('expedition-import-file');
+    if (input) input.click();
+  },
+
+  importExpeditionFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const payload = JSON.parse(reader.result);
+        const saveData = normalizeSaveData(
+          payload.expedition && payload.expedition.data
+            ? payload.expedition.data
+            : payload.data || payload
+        );
+        if (!saveData) throw new Error('Invalid save file');
+        const name = payload.expedition && payload.expedition.name
+          ? payload.expedition.name
+          : expeditionDefaultName(saveData.seed);
+        createExpeditionSlot(saveData.seed, name, saveData);
+        Screens.renderExpeditionLog();
+      } catch (e) {
+        alert('That save file could not be imported.');
+      } finally {
+        input.value = '';
+      }
+    };
+    reader.readAsText(file);
+  },
+
+  deleteExpedition(id) {
+    const expedition = getExpedition(id);
+    if (!expedition) return;
+    if (!confirm(`Delete "${expedition.name}"? Export it first if you want a backup.`)) return;
+    deleteExpeditionSlot(id);
+    Screens.renderExpeditionLog();
+  },
+
   // ═══════════════════════════════════════════════════════════════
   // SAVE / LOAD
   // ═══════════════════════════════════════════════════════════════
   save() { saveGame(); },
 
-  load() { return loadGame(); },
+  load(id) { return loadGame(id); },
 
   loadSeed() {
     const seedInput = document.getElementById('seed-input');
@@ -385,6 +508,18 @@ const Game = {
     });
   },
 
+  randomPlanetInSystem() {
+    if (!starSystem || !state || state.gameMode !== 'map') return;
+
+    const planetIndexes = starSystem.planets
+      .map((_, index) => index)
+      .filter(index => index !== state.selectedPlanetIndex);
+    const options = planetIndexes.length ? planetIndexes : [state.selectedPlanetIndex];
+    const planetIndex = options[Math.floor(Math.random() * options.length)];
+
+    Screens.selectPlanet(planetIndex);
+  },
+
   // ═══════════════════════════════════════════════════════════════
   // BOOT
   // ═══════════════════════════════════════════════════════════════
@@ -400,28 +535,8 @@ const Game = {
   },
 
   boot() {
-    if (this.load()) {
-      this._pushSystemHistory(starSystem.seed);
-      const seedInput = document.getElementById('seed-input');
-      if (seedInput) seedInput.value = starSystem.seed;
-      if (state.gameMode === 'surface' && state.currentPlanetIndex >= 0) {
-        // Resume on planet surface
-        Screens.hide();
-        document.getElementById('btn-return-ship').style.display = 'inline-block';
-        UI.printLocation();
-        UI.renderPlanetInfo();
-        UI.renderAnomalies();
-        Catalog.render();
-        Journal.render();
-        Journal.renderStats();
-      } else {
-        // Resume at system map
-        state.gameMode = 'map';
-        Screens.renderSystemMap();
-      }
-    } else {
-      this.randomPlanet();
-    }
+    loadExpeditionStore();
+    Screens.renderExpeditionLog();
   }
 };
 
@@ -433,7 +548,7 @@ const Game = {
 // INPUT: Keyboard controls
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  if (['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return;
   if (!starSystem) return;
 
   if (state.gameMode === 'map') {

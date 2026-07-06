@@ -15,13 +15,30 @@ const JOURNAL_CATS = {
 };
 
 const Journal = {
+  _escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  _nextEntryId() {
+    if (!state || !Array.isArray(state.journal)) return 0;
+    return state.journal.reduce((maxId, entry) => {
+      const id = Number(entry && entry.id);
+      return Number.isInteger(id) && id >= 0 ? Math.max(maxId, id) : maxId;
+    }, -1) + 1;
+  },
+
   add(category, title, text) {
     if (!state) return;
     const ps = getCurrentPlanetState();
     const pos = ps ? `${ps.x},${ps.y}` : 'ship';
     const time = ps ? formatTime() : '--:--';
     const entry = {
-      id: state.journal.length,
+      id: this._nextEntryId(),
       time: time,
       pos: pos,
       category,
@@ -63,27 +80,53 @@ const Journal = {
     return entries.slice().reverse().map(e => {
       const cat = JOURNAL_CATS[e.category] || JOURNAL_CATS.note;
       const isNote = ['note','hypothesis','observation','analysis','terrain','geology','stellar','fauna','flora'].includes(e.category);
+      const title = this._escapeHtml(e.title);
+      const text = this._escapeHtml(e.text);
+      const time = this._escapeHtml(e.time);
+      const pos = this._escapeHtml(e.pos);
       const deletBtn = editable ? `<span style="margin-left:auto"><button onclick="event.stopPropagation();Journal.deleteEntry(${e.id})" style="font-size:10px;padding:1px 5px;border-color:var(--orange)">\u2715</button></span>` : '';
       const editAttr = editable ? `contenteditable="true" onblur="Journal.saveInline(${e.id}, this)" style="outline:none;cursor:text"` : '';
       return `<div class="j-entry">
         <div class="j-meta">
           <span class="j-cat" style="background:${cat.color}22;color:${cat.color};border:1px solid ${cat.color}44">${cat.icon} ${cat.label}</span>
-          <span>${e.time}</span>
-          <span>@ ${e.pos}</span>
+          <span>${time}</span>
+          <span>@ ${pos}</span>
           ${deletBtn}
         </div>
-        <div class="j-text ${isNote ? 'j-note' : ''}" id="j-text-${e.id}" ${editAttr}>${isNote ? e.text : `<strong>${e.title}</strong><br><span class="dim">${e.text}</span>`}</div>
+        <div class="j-text ${isNote ? 'j-note' : ''}" id="j-text-${e.id}" ${editAttr}>${isNote ? text : `<strong>${title}</strong><br><span class="dim">${text}</span>`}</div>
       </div>`;
     }).join('');
   },
 
+  _renderSavedJournalSummaries() {
+    if (!state || !state.savedJournals || state.savedJournals.length === 0) return '';
+    return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--card-border)">
+      <div style="color:var(--accent1);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Archived Journals</div>
+      ${state.savedJournals.map((j, i) => `
+        <div style="padding:6px 8px;margin-bottom:4px;background:var(--card);border:1px solid var(--card-border);border-radius:3px">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <span style="color:var(--accent3);font-weight:500">${this._escapeHtml(j.name)}</span>
+            <span class="dim" style="font-size:10px">${j.entries.length} entries • ${this._escapeHtml(j.date)}</span>
+          </div>
+          <div style="margin-top:4px;display:flex;gap:4px">
+            <button onclick="Journal.viewSaved(${i})" style="font-size:11px;padding:2px 6px">View</button>
+            <button onclick="Journal.deleteSaved(${i})" style="font-size:11px;padding:2px 6px;border-color:var(--orange)">Delete</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  },
+
   render() {
     const el = document.getElementById('journal-entries');
-    if (!state || state.journal.length === 0) {
+    if (!state) {
       el.innerHTML = '<span class="dim">No entries yet.</span>';
       return;
     }
-    el.innerHTML = this._renderEntries(state.journal, true);
+    const currentEntries = state.journal.length > 0
+      ? this._renderEntries(state.journal, true)
+      : '<span class="dim">No entries yet.</span>';
+    el.innerHTML = currentEntries + this._renderSavedJournalSummaries();
   },
 
   search(query) {
@@ -122,9 +165,9 @@ const Journal = {
       savedMatches.forEach(m => {
         html += `<div style="color:var(--accent3);font-size:11px;margin:8px 0 4px;cursor:pointer" onclick="Journal.viewSaved(${m.index})">`;
         if (m.matchType === 'name') {
-          html += `\uD83D\uDCDA ${m.journal.name} \u2014 ${m.journal.entries.length} entries (name match)`;
+          html += `\uD83D\uDCDA ${this._escapeHtml(m.journal.name)} \u2014 ${m.journal.entries.length} entries (name match)`;
         } else {
-          html += `\uD83D\uDCDA ${m.journal.name} \u2014 ${m.hits.length} match${m.hits.length === 1 ? '' : 'es'}`;
+          html += `\uD83D\uDCDA ${this._escapeHtml(m.journal.name)} \u2014 ${m.hits.length} match${m.hits.length === 1 ? '' : 'es'}`;
         }
         html += `</div>`;
         if (m.hits) html += this._renderEntries(m.hits);
@@ -192,12 +235,12 @@ const Journal = {
     state.journal = [];
     this.render();
     this.renderStats();
-    this.renderSavedList();
     saveGame();
   },
 
   toggleSavedList() {
     const el = document.getElementById('saved-journals');
+    if (!el) return;
     if (el.style.display === 'none') {
       el.style.display = 'block';
       this.renderSavedList();
@@ -208,6 +251,7 @@ const Journal = {
 
   renderSavedList() {
     const el = document.getElementById('saved-journals');
+    if (!el) return;
     if (!state || !state.savedJournals || state.savedJournals.length === 0) {
       el.innerHTML = '<span class="dim">No saved journals.</span>';
       return;
@@ -215,8 +259,8 @@ const Journal = {
     el.innerHTML = state.savedJournals.map((j, i) => `
       <div style="padding:6px 8px;margin-bottom:4px;background:var(--card);border:1px solid var(--card-border);border-radius:3px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="color:var(--accent3);font-weight:500">${j.name}</span>
-          <span class="dim" style="font-size:10px">${j.entries.length} entries \u2022 ${j.date}</span>
+          <span style="color:var(--accent3);font-weight:500">${this._escapeHtml(j.name)}</span>
+          <span class="dim" style="font-size:10px">${j.entries.length} entries \u2022 ${this._escapeHtml(j.date)}</span>
         </div>
         <div style="margin-top:4px;display:flex;gap:4px">
           <button onclick="Journal.viewSaved(${i})" style="font-size:11px;padding:2px 6px">View</button>
@@ -231,8 +275,8 @@ const Journal = {
     const j = state.savedJournals[index];
     const el = document.getElementById('journal-entries');
     el.innerHTML = `<div style="margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--card-border)">
-      <span style="color:var(--accent3);font-weight:700">${j.name}</span>
-      <span class="dim"> \u2014 ${j.entries.length} entries \u2022 ${j.date}</span>
+      <span style="color:var(--accent3);font-weight:700">${this._escapeHtml(j.name)}</span>
+      <span class="dim"> \u2014 ${j.entries.length} entries \u2022 ${this._escapeHtml(j.date)}</span>
       <button onclick="Journal.render()" style="font-size:10px;padding:1px 6px;margin-left:6px">Back to Current</button>
     </div>` + this._renderEntries(j.entries);
   },
@@ -241,7 +285,7 @@ const Journal = {
     if (!state.savedJournals || !state.savedJournals[index]) return;
     if (!confirm('Delete "' + state.savedJournals[index].name + '"?')) return;
     state.savedJournals.splice(index, 1);
-    this.renderSavedList();
+    this.render();
     saveGame();
   }
 };

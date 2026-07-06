@@ -109,6 +109,19 @@ function generateFleetRequests(seed, planets) {
   return requests;
 }
 
+function normalizeAtmosphereComposition(composition) {
+  const normalized = {};
+  const total = Object.values(composition).reduce((sum, value) => sum + Math.max(0, value), 0);
+  if (total <= 0) return { CO2: 1 };
+
+  Object.keys(composition).forEach(gas => {
+    const value = Math.max(0, composition[gas]) / total;
+    if (value > 0) normalized[gas] = value;
+  });
+
+  return normalized;
+}
+
 function generatePlanet(seed, sharedStar) {
   const r = seedRng(seed);
 
@@ -175,6 +188,7 @@ function generatePlanet(seed, sharedStar) {
       if (so2 > 0) atmoComp.SO2 = so2;
     }
   }
+  atmoComp = normalizeAtmosphereComposition(atmoComp);
 
   const co2Frac = atmoComp.CO2 || 0;
   const ch4Frac = atmoComp.CH4 || 0;
